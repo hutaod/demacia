@@ -1,17 +1,18 @@
 {
-  "name": "demacia",
-  "version": "1.0.0",
-  "description": "A framework base on umi.",
-  "bin": {
-    "demacia": "cli.js"
+  "private": true,
+  "scripts": {
+    "build": "father build",
+    "doc:dev": "father doc dev",
+    "doc:build": "father doc build",
+    "publish": "./scripts/publish.js",
+    "bootstrap": "lerna bootstrap"
   },
-  "keywords": [
-    "umi"
-  ],
-  "author": "1131589588@qq.com",
-  "license": "ISC",
   "dependencies": {
     "umi": "^2.11.3",
     "umi-plugin-react": "^1.13.3"
+  },
+  "devDependencies": {
+    "father": "^2.29.0",
+    "lerna": "^3.19.0"
   }
 }

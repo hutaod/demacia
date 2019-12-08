@@ -1,0 +1,40 @@
+{
+  "name": "demacia",
+  "version": "1.0.0-beta.1",
+  "description": "redux model library",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ht1131589588/demacia"
+  },
+  "homepage": "https://github.com/ht1131589588/demacia",
+  "keywords": [
+    "redux",
+    "effects",
+    "framework",
+    "frontend"
+  ],
+  "authors": [
+    "hutao <htxc520@gmail.com> (https://github.com/ht1131589588)"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ht1131589588/demacia/issues"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.0.0"
+  },
+  "peerDependencies": {
+    "redux": "4.x"
+  },
+  "devDependencies": {
+    "redux": "^4.0.1"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "src"
+  ]
+}
