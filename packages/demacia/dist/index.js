@@ -2,7 +2,10 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
 var redux = require('redux');
+var isNode = _interopDefault(require('detect-node'));
 
 function _typeof(obj) {
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -196,7 +199,7 @@ var model = function model(_ref) {
     var reducer = function reducer() {
       var prevState = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : state;
       var action = arguments.length > 1 ? arguments[1] : undefined;
-      console.log(action.type);
+      // console.log(action.type)
       var typeArr = action.type.split('/'); // 判断reducers是是符合要求的对象，并且判断action.type是否符合要求
 
       if (isPlainObject(reducers) && typeArr[0] === namespace) {
@@ -237,40 +240,6 @@ var rayslog = function rayslog(_ref2) {
     }
   }
 
-  var logger = function logger(store) {
-    return function (dispatch) {
-      return function (action) {
-        console.log('disptach:', action);
-        var nextAction = dispatch(action);
-        console.log('finish:', action);
-        return nextAction;
-      };
-    };
-  };
-
-  var logger2 = function logger2(store) {
-    return function (dispatch) {
-      return function (action) {
-        console.log('disptach2:', action);
-        var nextAction = dispatch(action);
-        console.log('finish2:', action);
-        return nextAction;
-      };
-    };
-  };
-
-  var thunk = function thunk(store) {
-    return function (dispatch) {
-      return function (action) {
-        if (typeof action === 'function') {
-          return action(dispatch, store);
-        }
-
-        return dispatch(action);
-      };
-    };
-  };
-
   var effectsMiddle = function effectsMiddle(store) {
     return function (_dispatch) {
       return function (action) {
@@ -303,9 +272,14 @@ var rayslog = function rayslog(_ref2) {
     };
   };
 
-  var composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || redux.compose; // 创建store
+  var composeEnhancers = redux.compose;
 
-  store = redux.createStore(redux.combineReducers(rootReducers), initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle, logger, thunk, logger2].concat(_toConsumableArray(middlewares)))));
+  if (!isNode) {
+    composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || redux.compose;
+  } // 创建store
+
+
+  store = redux.createStore(redux.combineReducers(rootReducers), initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
   return {
     store: store,
     addReducer: addReducer,

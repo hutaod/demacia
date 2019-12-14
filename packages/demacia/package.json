@@ -1,6 +1,6 @@
 {
   "name": "demacia",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0-alpha.1",
   "description": "redux model library",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -24,7 +24,8 @@
     "url": "https://github.com/ht1131589588/demacia/issues"
   },
   "dependencies": {
-    "@babel/runtime": "^7.0.0"
+    "@babel/runtime": "^7.0.0",
+    "detect-node": "^2.0.4"
   },
   "peerDependencies": {
     "redux": "4.x"

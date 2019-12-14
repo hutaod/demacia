@@ -1,4 +1,5 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
+import isNode from 'detect-node'
 import isPlainObject from './utils/isPlainObject'
 
 let store
@@ -47,7 +48,7 @@ export const model = ({ namespace, state, reducers, effects }) => {
   }
   if (typeof state !== 'undefined') {
     const reducer = function(prevState = state, action) {
-      console.log(action.type)
+      // console.log(action.type)
 
       const typeArr = action.type.split('/')
       // 判断reducers是是符合要求的对象，并且判断action.type是否符合要求
@@ -80,27 +81,6 @@ const rayslog = function({ initialState, initialModels, middlewares = [] }) {
     }
   }
 
-  const logger = (store) => (dispatch) => (action) => {
-    console.log('disptach:', action)
-    const nextAction = dispatch(action)
-    console.log('finish:', action)
-    return nextAction
-  }
-
-  const logger2 = (store) => (dispatch) => (action) => {
-    console.log('disptach2:', action)
-    const nextAction = dispatch(action)
-    console.log('finish2:', action)
-    return nextAction
-  }
-
-  const thunk = (store) => (dispatch) => (action) => {
-    if (typeof action === 'function') {
-      return action(dispatch, store)
-    }
-    return dispatch(action)
-  }
-
   const effectsMiddle = (store) => (dispatch) => (action) => {
     if (isPlainObject(action) && typeof action.type === 'string') {
       const { type, ...args } = action
@@ -125,15 +105,15 @@ const rayslog = function({ initialState, initialModels, middlewares = [] }) {
     return dispatch(action)
   }
 
-  const composeEnhancers =
-    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
+  let composeEnhancers = compose
+  if (!isNode) {
+    composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
+  }
   // 创建store
   store = createStore(
     combineReducers(rootReducers),
     initialState,
-    composeEnhancers(
-      applyMiddleware(effectsMiddle, logger, thunk, logger2, ...middlewares)
-    )
+    composeEnhancers(applyMiddleware(effectsMiddle, ...middlewares))
   )
 
   return {
