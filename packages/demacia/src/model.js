@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react'
+import React from 'react'
 import hoistNonReactStatic from 'hoist-non-react-statics'
 import isNode from 'detect-node'
 import checkModel from './utils/checkModel'
@@ -29,7 +29,7 @@ export default function model(model) {
     injectEffects(namespace, effects)
   }
   return Comp => {
-    const ModelHoc = forwardRef(function ModelHoc(props, ref) {
+    const ModelHoc = React.forwardRef(function ModelHoc(props, ref) {
       return <Comp {...props} ref={ref} />
     })
     ModelHoc.displayName = getDisplayName(Comp)

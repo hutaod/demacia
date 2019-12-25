@@ -6,6 +6,9 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var redux = require('redux');
 var isNode = _interopDefault(require('detect-node'));
+var invariant = _interopDefault(require('invariant'));
+var React = _interopDefault(require('react'));
+var hoistNonReactStatic = _interopDefault(require('hoist-non-react-statics'));
 
 function _typeof(obj) {
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -34,6 +37,24 @@ function _defineProperty(obj, key, value) {
   }
 
   return obj;
+}
+
+function _extends() {
+  _extends = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+
+    return target;
+  };
+
+  return _extends.apply(this, arguments);
 }
 
 function ownKeys(object, enumerableOnly) {
@@ -141,12 +162,69 @@ function isPlainObject(obj) {
   return Object.getPrototypeOf(obj) === proto;
 }
 
-var store;
-var rootReducers = {};
-var rootEffects = {}; // 动态注入reducer
+/**
+ * 检测model是否符合规范
+ * @param {Object} model
+ * @param {Object} allModels
+ */
 
-var addReducer = function addReducer(key, reducer, effects) {
-  if (!key || typeof key !== 'string') {
+function checkModel(model, allModels) {
+  invariant(model.namespace, 'model.namespace: should be string');
+  console.log(allModels, model.namespace);
+  invariant(allModels[model.namespace] === undefined, "model.namespace: ".concat(model.namespace, " has been registered"));
+  allModels[model.namespace] = model.namespace;
+
+  if (model.reducers || model.state) ;
+
+  if (model.effects) {
+    invariant(isPlainObject(model.effects), "model.effects: should be PlainObject");
+  }
+}
+
+/**
+ * 创建reducer
+ * @param {Object} model
+ */
+function createReducers(model) {
+  var namespace = model.namespace,
+      state = model.state,
+      reducers = model.reducers; // 修改reducer键值 比如: add => `global/add`
+
+  Object.keys(reducers).forEach(function (reducerKey) {
+    model.reducers["".concat(namespace, "/").concat(reducerKey)] = reducers[reducerKey];
+    delete model.reducers[reducerKey];
+  });
+  return function finalReducer() {
+    var initialState = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : state;
+    var action = arguments.length > 1 ? arguments[1] : undefined;
+    var reduceFn = reducers[action.type];
+
+    if (typeof reduceFn === 'function') {
+      var nextState = reduceFn(initialState, action); // 如果新的state是undefined就抛出对应错误
+
+      if (typeof nextState === 'undefined') {
+        throw new Error('return state error！');
+      }
+
+      return nextState;
+    }
+
+    return initialState;
+  };
+}
+
+var store = null;
+var allReducer = {};
+var allEffects = {};
+var allModels = {};
+/**
+ * 动态注入reducer
+ * @param {String} namespace
+ * @param {Function} reducer
+ */
+
+function injectReducer(namespace, reducer) {
+  if (!namespace || typeof namespace !== 'string') {
     if (process.env.NODE_ENV !== 'production') {
       throw Error('error');
     }
@@ -156,91 +234,49 @@ var addReducer = function addReducer(key, reducer, effects) {
 
   if (!reducer || typeof reducer !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
+      throw Error('reducer must be a function');
+    }
+
+    return;
+  }
+
+  allReducer[namespace] = reducer;
+
+  if (store) {
+    store.replaceReducer(redux.combineReducers(allReducer));
+  }
+}
+/**
+ * 动态注入effects
+ * @param {String} namespace
+ * @param {Function} effects
+ */
+
+function injectEffects(namespace, effects) {
+  console.log('effects', effects);
+
+  if (!namespace || typeof namespace !== 'string') {
+    if (process.env.NODE_ENV !== 'production') {
       throw Error('error');
     }
 
     return;
   }
 
-  if (rootReducers[key]) {
-    throw Error('reducer has exist');
-  }
+  if (!effects || _typeof(effects) !== 'object' || Array.isArray(effects)) {
+    if (process.env.NODE_ENV !== 'production') {
+      throw Error('effects must be a object');
+    }
 
-  rootReducers[key] = reducer;
-  rootEffects[key] = effects;
-
-  if (store) {
-    store.replaceReducer(redux.combineReducers(rootReducers));
-  }
-};
-/**
- *
- * @param {Object} options
- * {
- *  namespace, // model 命名空间
- *  state, 初始值
- *  reducers，唯一可以修改state的地方，由action触发
- *  effects，用于处理异步操作和业务逻辑，不直接修改 state。由 action 触发，可以触发 action，可以和服务器交互，可以获取全局 state 的数据等等。
- * }
- */
-
-var model = function model(_ref) {
-  var namespace = _ref.namespace,
-      state = _ref.state,
-      reducers = _ref.reducers,
-      effects = _ref.effects;
-
-  if (typeof namespace !== 'string' || namespace.trim().length === 0) {
-    console.error('namespace not exist');
     return;
   }
 
-  if (typeof state !== 'undefined') {
-    var reducer = function reducer() {
-      var prevState = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : state;
-      var action = arguments.length > 1 ? arguments[1] : undefined;
-      // console.log(action.type)
-      var typeArr = action.type.split('/'); // 判断reducers是是符合要求的对象，并且判断action.type是否符合要求
+  allEffects[namespace] = effects;
+  console.log(allEffects);
+}
 
-      if (isPlainObject(reducers) && typeArr[0] === namespace) {
-        var callFunc = reducers[typeArr[1]];
-
-        if (typeof callFunc === 'function') {
-          var nextState = callFunc(prevState, action); // 如果新的state是undefined就抛出对应错误
-
-          if (typeof nextState === 'undefined') {
-            throw new Error('return state error！');
-          }
-
-          return nextState;
-        }
-      }
-
-      return prevState;
-    };
-
-    addReducer(namespace, reducer, effects);
-  }
-};
-
-var rayslog = function rayslog(_ref2) {
-  var initialState = _ref2.initialState,
-      initialModels = _ref2.initialModels,
-      _ref2$middlewares = _ref2.middlewares,
-      middlewares = _ref2$middlewares === void 0 ? [] : _ref2$middlewares;
-
-  // 初始model
-  if (isPlainObject(initialModels)) {
-    for (var key in initialModels) {
-      var initialModel = initialModels[key];
-
-      if (isPlainObject(initialModel)) {
-        model(initialModel);
-      }
-    }
-  }
-
-  var effectsMiddle = function effectsMiddle(store) {
+function createEffectsMiddle(effectsExtraArgument) {
+  return function (store) {
     return function (_dispatch) {
       return function (action) {
         if (isPlainObject(action) && typeof action.type === 'string') {
@@ -251,17 +287,18 @@ var rayslog = function rayslog(_ref2) {
           var namespace = actionType[0];
           var actualtype = actionType[1];
 
-          if (rootEffects[namespace] && rootEffects[namespace][actualtype]) {
-            return rootEffects[namespace][actualtype]({
-              dispatch: function dispatch(_ref3) {
-                var type = _ref3.type,
-                    rest = _objectWithoutProperties(_ref3, ["type"]);
+          if (allEffects[namespace] && allEffects[namespace][actualtype]) {
+            return allEffects[namespace][actualtype](_objectSpread2({
+              dispatch: function dispatch(_ref) {
+                var type = _ref.type,
+                    rest = _objectWithoutProperties(_ref, ["type"]);
 
+                console.log("".concat(namespace, "/").concat(type));
                 return _dispatch(_objectSpread2({
                   type: "".concat(namespace, "/").concat(type)
                 }, rest));
               }
-            }, _objectSpread2({}, args));
+            }, effectsExtraArgument), _objectSpread2({}, args));
           }
 
           return _dispatch(action);
@@ -271,7 +308,47 @@ var rayslog = function rayslog(_ref2) {
       };
     };
   };
+}
 
+function demacia(_ref2) {
+  var initialState = _ref2.initialState,
+      initialModels = _ref2.initialModels,
+      _ref2$middlewares = _ref2.middlewares,
+      middlewares = _ref2$middlewares === void 0 ? [] : _ref2$middlewares,
+      _ref2$effectsExtraArg = _ref2.effectsExtraArgument,
+      effectsExtraArgument = _ref2$effectsExtraArg === void 0 ? {} : _ref2$effectsExtraArg;
+
+  // 初始model
+  if (isPlainObject(initialModels)) {
+    for (var key in initialModels) {
+      var initialModel = initialModels[key];
+
+      if (isPlainObject(initialModel)) {
+        if (!isNode) {
+          checkModel(initialModel, allModels);
+        }
+
+        var namespace = initialModel.namespace,
+            state = initialModel.state,
+            reducers = initialModel.reducers,
+            effects = initialModel.effects;
+
+        if (typeof state !== 'undefined') {
+          if (reducers) {
+            var reducer = createReducers(initialModel);
+            injectReducer(namespace, reducer);
+          }
+
+          if (effects) {
+            injectEffects(namespace, effects);
+          }
+        }
+      }
+    }
+  } // effects处理的中间件
+
+
+  var effectsMiddle = createEffectsMiddle(effectsExtraArgument);
   var composeEnhancers = redux.compose;
 
   if (!isNode) {
@@ -279,16 +356,55 @@ var rayslog = function rayslog(_ref2) {
   } // 创建store
 
 
-  store = redux.createStore(redux.combineReducers(rootReducers), initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
-  return {
-    store: store,
-    addReducer: addReducer,
-    getStore: function getStore() {
-      return store;
-    }
-  };
-};
+  store = redux.createStore(redux.combineReducers(allReducer), initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
+  return store;
+}
 
-exports.addReducer = addReducer;
-exports.default = rayslog;
+function getDisplayName(WrappedComponent) {
+  return WrappedComponent.displayName || WrappedComponent.name || 'Component';
+}
+
+/**
+ *
+ * @param {Object} model
+ * {
+ *  namespace, // model 命名空间
+ *  state, 初始值
+ *  reducers，唯一可以修改state的地方，由action触发
+ *  effects，用于处理异步操作和业务逻辑，不直接修改 state。由 action 触发，可以触发 action，可以和服务器交互，可以获取全局 state 的数据等等。
+ * }
+ */
+
+function model(model) {
+  if (!isNode) {
+    checkModel(model, allModels);
+  }
+
+  var namespace = model.namespace,
+      reducers = model.reducers,
+      effects = model.effects;
+
+  if (reducers) {
+    var reducer = createReducers(model);
+    injectReducer(namespace, reducer);
+  }
+
+  if (effects) {
+    injectEffects(namespace, effects);
+  }
+
+  return function (Comp) {
+    var ModelHoc = React.forwardRef(function ModelHoc(props, ref) {
+      return React.createElement(Comp, _extends({}, props, {
+        ref: ref
+      }));
+    });
+    ModelHoc.displayName = getDisplayName(Comp); // 拷贝静态方法
+
+    hoistNonReactStatic(ModelHoc, Comp);
+    return ModelHoc;
+  };
+}
+
+exports.default = demacia;
 exports.model = model;
