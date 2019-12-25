@@ -1,4 +1,4 @@
 import demacia from './store'
-export { default as model } from './model'
+import model from './model'
 
-export default demacia
+export { demacia, model }

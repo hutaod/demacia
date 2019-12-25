@@ -253,8 +253,6 @@ function injectReducer(namespace, reducer) {
  */
 
 function injectEffects(namespace, effects) {
-  console.log('effects', effects);
-
   if (!namespace || typeof namespace !== 'string') {
     if (process.env.NODE_ENV !== 'production') {
       throw Error('error');
@@ -272,7 +270,6 @@ function injectEffects(namespace, effects) {
   }
 
   allEffects[namespace] = effects;
-  console.log(allEffects);
 }
 
 function createEffectsMiddle(effectsExtraArgument) {
@@ -293,7 +290,6 @@ function createEffectsMiddle(effectsExtraArgument) {
                 var type = _ref.type,
                     rest = _objectWithoutProperties(_ref, ["type"]);
 
-                console.log("".concat(namespace, "/").concat(type));
                 return _dispatch(_objectSpread2({
                   type: "".concat(namespace, "/").concat(type)
                 }, rest));
@@ -406,5 +402,5 @@ function model(model) {
   };
 }
 
-exports.default = demacia;
+exports.demacia = demacia;
 exports.model = model;

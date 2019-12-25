@@ -39,8 +39,6 @@ export function injectReducer(namespace, reducer) {
  * @param {Function} effects
  */
 export function injectEffects(namespace, effects) {
-  console.log('effects', effects)
-
   if (!namespace || typeof namespace !== 'string') {
     if (process.env.NODE_ENV !== 'production') {
       throw Error('error')
@@ -54,11 +52,10 @@ export function injectEffects(namespace, effects) {
     return
   }
   allEffects[namespace] = effects
-  console.log(allEffects)
 }
 
 function createEffectsMiddle(effectsExtraArgument) {
-  return store => dispatch => action => {
+  return (store) => (dispatch) => (action) => {
     if (isPlainObject(action) && typeof action.type === 'string') {
       const { type, ...args } = action
       const actionType = action.type.split('/')
@@ -69,14 +66,12 @@ function createEffectsMiddle(effectsExtraArgument) {
         return allEffects[namespace][actualtype](
           {
             dispatch: ({ type, ...rest }) => {
-              console.log(`${namespace}/${type}`)
-
               return dispatch({
                 type: `${namespace}/${type}`,
-                ...rest
+                ...rest,
               })
             },
-            ...effectsExtraArgument
+            ...effectsExtraArgument,
           },
           { ...args }
         )
@@ -91,7 +86,7 @@ function demacia({
   initialState,
   initialModels,
   middlewares = [],
-  effectsExtraArgument = {}
+  effectsExtraArgument = {},
 }) {
   // 初始model
   if (isPlainObject(initialModels)) {
