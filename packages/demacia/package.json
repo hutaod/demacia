@@ -1,6 +1,6 @@
 {
   "name": "demacia",
-  "version": "1.0.2",
+  "version": "1.0.3-alpha.0",
   "description": "redux model library",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -27,20 +27,20 @@
     "@babel/runtime": "^7.0.0"
   },
   "peerDependencies": {
+    "detect-node": "^2.x",
     "hoist-non-react-statics": "^3.x",
     "invariant": "^2.x",
     "react": "^16.x",
     "react-redux": "^7.x",
-    "redux": "^4.x",
-    "detect-node": "^2.x"
+    "redux": "^4.x"
   },
   "devDependencies": {
+    "detect-node": "^2.0.4",
     "hoist-non-react-statics": "^3.3.1",
     "invariant": "^2.2.4",
     "react": "^16.12.0",
     "react-redux": "^7.1.3",
-    "redux": "^4.0.5",
-    "detect-node": "^2.0.4"
+    "redux": "^4.0.5"
   },
   "files": [
     "dist",
