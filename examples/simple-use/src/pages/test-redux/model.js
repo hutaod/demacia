@@ -3,8 +3,15 @@ import { createStructuredSelector } from 'reselect'
 
 export default model({
   namespace: 'testRedux',
+  // selectors: state => {
+  //   console.log(state)
+  //   return state.testRedux
+  // },
   selectors: createStructuredSelector({
-    todos: state => state.testRedux.todos,
+    todos: state => {
+      console.log(state)
+      return state.testRedux.todos
+    },
   }),
   state: {
     todos: [],

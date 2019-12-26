@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react'
-import { connect } from 'react-redux'
+import Counter from './components/Counter'
 import model from './model'
 
-const TestRedux = (props) => {
+const TestRedux = props => {
   console.log(props)
 
   const { dispatch, todos = [] } = props
   const [input, setInput] = useState('')
-  // useEffect(() => {
-  //   dispatch({
-  //     type: 'testRedux/getTodos',
-  //   })
-  // }, [dispatch])
+  useEffect(() => {
+    dispatch({
+      type: 'testRedux/getTodos',
+    })
+  }, [dispatch])
 
   return (
     <div>
       <h2>水果蔬菜</h2>
       <div>
-        <input value={input} onChange={(e) => setInput(e.target.value)} />
+        <input value={input} onChange={e => setInput(e.target.value)} />
         <button
           onClick={async () => {
             await dispatch({
@@ -36,20 +36,13 @@ const TestRedux = (props) => {
         </button>
       </div>
       <ul>
-        {todos.map((fruit) => (
+        {todos.map(fruit => (
           <li key={fruit.id}>{fruit.name}</li>
         ))}
       </ul>
+      <Counter />
     </div>
   )
 }
-
-// function mapStateToProps(state) {
-//   // console.log('state', state)
-
-//   return {
-//     ...state.testRedux,
-//   }
-// }
 
 export default model(TestRedux)
