@@ -1,11 +1,10 @@
 import React from 'react'
-import { HashRouter, Route } from 'react-router-dom'
-import Index from '../pages/Index'
 
-export default function() {
-  return (
-    <HashRouter>
-      <Route path="/" exact component={Index} />
-    </HashRouter>
-  )
-}
+import { Switch, Route } from 'react-router-dom'
+import TestRedux from '../pages/test-redux'
+
+export default (
+  <Switch>
+    <Route path="/test-redux" component={TestRedux} />
+  </Switch>
+)

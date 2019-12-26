@@ -7,8 +7,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var redux = require('redux');
 var isNode = _interopDefault(require('detect-node'));
 var invariant = _interopDefault(require('invariant'));
-var React = _interopDefault(require('react'));
-var hoistNonReactStatic = _interopDefault(require('hoist-non-react-statics'));
+var reactRedux = require('react-redux');
 
 function _typeof(obj) {
   if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
@@ -37,24 +36,6 @@ function _defineProperty(obj, key, value) {
   }
 
   return obj;
-}
-
-function _extends() {
-  _extends = Object.assign || function (target) {
-    for (var i = 1; i < arguments.length; i++) {
-      var source = arguments[i];
-
-      for (var key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          target[key] = source[key];
-        }
-      }
-    }
-
-    return target;
-  };
-
-  return _extends.apply(this, arguments);
 }
 
 function ownKeys(object, enumerableOnly) {
@@ -170,7 +151,6 @@ function isPlainObject(obj) {
 
 function checkModel(model, allModels) {
   invariant(model.namespace, 'model.namespace: should be string');
-  console.log(allModels, model.namespace);
   invariant(allModels[model.namespace] === undefined, "model.namespace: ".concat(model.namespace, " has been registered"));
   allModels[model.namespace] = model.namespace;
 
@@ -178,6 +158,10 @@ function checkModel(model, allModels) {
 
   if (model.effects) {
     invariant(isPlainObject(model.effects), "model.effects: should be PlainObject");
+  }
+
+  if (model.selectors) {
+    invariant(typeof model.selectors === 'function', "model.selectors: should be function");
   }
 }
 
@@ -210,6 +194,38 @@ function createReducers(model) {
     }
 
     return initialState;
+  };
+}
+
+/**
+ * 处理model
+ * @param {Object} model
+ */
+
+function createModel(model) {
+  if (!isNode) {
+    checkModel(model, allModels);
+  }
+
+  var selectors = null;
+
+  if (model.selectors) {
+    selectors = function selectors(state) {
+      return model.selectors(state);
+    };
+  }
+
+  if (model.reducers) {
+    var reducer = createReducers(model);
+    injectReducer(model.namespace, reducer);
+  }
+
+  if (model.effects) {
+    injectEffects(model.namespace, model.effects);
+  }
+
+  return {
+    selectors: selectors
   };
 }
 
@@ -320,25 +336,7 @@ function demacia(_ref2) {
       var initialModel = initialModels[key];
 
       if (isPlainObject(initialModel)) {
-        if (!isNode) {
-          checkModel(initialModel, allModels);
-        }
-
-        var namespace = initialModel.namespace,
-            state = initialModel.state,
-            reducers = initialModel.reducers,
-            effects = initialModel.effects;
-
-        if (typeof state !== 'undefined') {
-          if (reducers) {
-            var reducer = createReducers(initialModel);
-            injectReducer(namespace, reducer);
-          }
-
-          if (effects) {
-            injectEffects(namespace, effects);
-          }
-        }
+        createModel(initialModel);
       }
     }
   } // effects处理的中间件
@@ -356,10 +354,6 @@ function demacia(_ref2) {
   return store;
 }
 
-function getDisplayName(WrappedComponent) {
-  return WrappedComponent.displayName || WrappedComponent.name || 'Component';
-}
-
 /**
  *
  * @param {Object} model
@@ -372,34 +366,16 @@ function getDisplayName(WrappedComponent) {
  */
 
 function model(model) {
-  if (!isNode) {
-    checkModel(model, allModels);
+  var _createModel = createModel(model),
+      selectors = _createModel.selectors;
+
+  console.log(selectors);
+
+  function wrap(Comp) {
+    return reactRedux.connect()(Comp);
   }
 
-  var namespace = model.namespace,
-      reducers = model.reducers,
-      effects = model.effects;
-
-  if (reducers) {
-    var reducer = createReducers(model);
-    injectReducer(namespace, reducer);
-  }
-
-  if (effects) {
-    injectEffects(namespace, effects);
-  }
-
-  return function (Comp) {
-    var ModelHoc = React.forwardRef(function ModelHoc(props, ref) {
-      return React.createElement(Comp, _extends({}, props, {
-        ref: ref
-      }));
-    });
-    ModelHoc.displayName = getDisplayName(Comp); // 拷贝静态方法
-
-    hoistNonReactStatic(ModelHoc, Comp);
-    return ModelHoc;
-  };
+  return wrap;
 }
 
 exports.demacia = demacia;

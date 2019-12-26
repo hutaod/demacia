@@ -8,7 +8,6 @@ import isPlainObject from './isPlainObject'
  */
 export default function checkModel(model, allModels) {
   invariant(model.namespace, 'model.namespace: should be string')
-  console.log(allModels, model.namespace)
 
   invariant(
     allModels[model.namespace] === undefined,
@@ -22,6 +21,12 @@ export default function checkModel(model, allModels) {
     invariant(
       isPlainObject(model.effects),
       `model.effects: should be PlainObject`
+    )
+  }
+  if (model.selectors) {
+    invariant(
+      typeof model.selectors === 'function',
+      `model.selectors: should be function`
     )
   }
 }

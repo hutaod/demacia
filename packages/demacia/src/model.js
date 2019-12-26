@@ -1,10 +1,5 @@
-import React from 'react'
-import hoistNonReactStatic from 'hoist-non-react-statics'
-import isNode from 'detect-node'
-import checkModel from './utils/checkModel'
-import getDisplayName from './utils/getDisplayName'
-import createReducers from './createReducers'
-import { injectReducer, injectEffects, allModels } from './store'
+import { connect } from 'react-redux'
+import createModel from './createModel'
 
 /**
  *
@@ -17,24 +12,11 @@ import { injectReducer, injectEffects, allModels } from './store'
  * }
  */
 export default function model(model) {
-  if (!isNode) {
-    checkModel(model, allModels)
+  const { selectors } = createModel(model)
+
+  function wrap(Comp) {
+    return connect(selectors)(Comp)
   }
-  const { namespace, reducers, effects } = model
-  if (reducers) {
-    const reducer = createReducers(model)
-    injectReducer(namespace, reducer)
-  }
-  if (effects) {
-    injectEffects(namespace, effects)
-  }
-  return Comp => {
-    const ModelHoc = React.forwardRef(function ModelHoc(props, ref) {
-      return <Comp {...props} ref={ref} />
-    })
-    ModelHoc.displayName = getDisplayName(Comp)
-    // 拷贝静态方法
-    hoistNonReactStatic(ModelHoc, Comp)
-    return ModelHoc
-  }
+
+  return wrap
 }
