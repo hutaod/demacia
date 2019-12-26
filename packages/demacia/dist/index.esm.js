@@ -76,38 +76,6 @@ function createReducers(model) {
   };
 }
 
-/**
- * 处理model
- * @param {Object} model
- */
-
-function createModel(model) {
-  if (!isNode) {
-    checkModel(model, allModels);
-  }
-
-  var selectors = null;
-
-  if (model.selectors) {
-    selectors = function selectors(state) {
-      return model.selectors(state);
-    };
-  }
-
-  if (model.reducers) {
-    var reducer = createReducers(model);
-    injectReducer(model.namespace, reducer);
-  }
-
-  if (model.effects) {
-    injectEffects(model.namespace, model.effects);
-  }
-
-  return {
-    selectors: selectors
-  };
-}
-
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
@@ -218,7 +186,18 @@ function demacia(_ref2) {
       var initialModel = initialModels[key];
 
       if (isPlainObject(initialModel)) {
-        createModel(initialModel);
+        if (!isNode) {
+          checkModel(initialModel, allModels);
+        }
+
+        if (initialModel.reducers) {
+          var reducer = createReducers(initialModel);
+          injectReducer(initialModel.namespace, reducer);
+        }
+
+        if (initialModel.effects) {
+          injectEffects(initialModel.namespace, initialModel.effects);
+        }
       }
     }
   } // effects处理的中间件
@@ -237,6 +216,38 @@ function demacia(_ref2) {
 }
 
 /**
+ * 处理model
+ * @param {Object} model
+ */
+
+function createModel(model) {
+  if (!isNode) {
+    checkModel(model, allModels);
+  }
+
+  var selectors = null;
+
+  if (model.selectors) {
+    selectors = function selectors(state) {
+      return model.selectors(state);
+    };
+  }
+
+  if (model.reducers) {
+    var reducer = createReducers(model);
+    injectReducer(model.namespace, reducer);
+  }
+
+  if (model.effects) {
+    injectEffects(model.namespace, model.effects);
+  }
+
+  return {
+    selectors: selectors
+  };
+}
+
+/**
  *
  * @param {Object} model
  * {
@@ -251,13 +262,11 @@ function model(model) {
   var _createModel = createModel(model),
       selectors = _createModel.selectors;
 
-  console.log(selectors);
-
-  function wrap(Comp) {
-    return connect()(Comp);
+  function Wrap(Component) {
+    return connect(selectors)(Component);
   }
 
-  return wrap;
+  return Wrap;
 }
 
 export { demacia, model };

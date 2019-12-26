@@ -1,7 +1,8 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import isNode from 'detect-node'
 import isPlainObject from './utils/isPlainObject'
-import createModel from './createModel'
+import checkModel from './utils/checkModel'
+import createReducers from './createReducers'
 
 let store = null
 const allReducer = {}
@@ -67,10 +68,10 @@ function createEffectsMiddle(effectsExtraArgument) {
             dispatch: ({ type, ...rest }) => {
               return dispatch({
                 type: `${namespace}/${type}`,
-                ...rest
+                ...rest,
               })
             },
-            ...effectsExtraArgument
+            ...effectsExtraArgument,
           },
           { ...args }
         )
@@ -85,14 +86,23 @@ function demacia({
   initialState,
   initialModels,
   middlewares = [],
-  effectsExtraArgument = {}
+  effectsExtraArgument = {},
 }) {
   // 初始model
   if (isPlainObject(initialModels)) {
     for (const key in initialModels) {
       const initialModel = initialModels[key]
       if (isPlainObject(initialModel)) {
-        createModel(initialModel)
+        if (!isNode) {
+          checkModel(initialModel, allModels)
+        }
+        if (initialModel.reducers) {
+          const reducer = createReducers(initialModel)
+          injectReducer(initialModel.namespace, reducer)
+        }
+        if (initialModel.effects) {
+          injectEffects(initialModel.namespace, initialModel.effects)
+        }
       }
     }
   }

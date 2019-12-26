@@ -197,38 +197,6 @@ function createReducers(model) {
   };
 }
 
-/**
- * 处理model
- * @param {Object} model
- */
-
-function createModel(model) {
-  if (!isNode) {
-    checkModel(model, allModels);
-  }
-
-  var selectors = null;
-
-  if (model.selectors) {
-    selectors = function selectors(state) {
-      return model.selectors(state);
-    };
-  }
-
-  if (model.reducers) {
-    var reducer = createReducers(model);
-    injectReducer(model.namespace, reducer);
-  }
-
-  if (model.effects) {
-    injectEffects(model.namespace, model.effects);
-  }
-
-  return {
-    selectors: selectors
-  };
-}
-
 var store = null;
 var allReducer = {};
 var allEffects = {};
@@ -336,7 +304,18 @@ function demacia(_ref2) {
       var initialModel = initialModels[key];
 
       if (isPlainObject(initialModel)) {
-        createModel(initialModel);
+        if (!isNode) {
+          checkModel(initialModel, allModels);
+        }
+
+        if (initialModel.reducers) {
+          var reducer = createReducers(initialModel);
+          injectReducer(initialModel.namespace, reducer);
+        }
+
+        if (initialModel.effects) {
+          injectEffects(initialModel.namespace, initialModel.effects);
+        }
       }
     }
   } // effects处理的中间件
@@ -355,6 +334,38 @@ function demacia(_ref2) {
 }
 
 /**
+ * 处理model
+ * @param {Object} model
+ */
+
+function createModel(model) {
+  if (!isNode) {
+    checkModel(model, allModels);
+  }
+
+  var selectors = null;
+
+  if (model.selectors) {
+    selectors = function selectors(state) {
+      return model.selectors(state);
+    };
+  }
+
+  if (model.reducers) {
+    var reducer = createReducers(model);
+    injectReducer(model.namespace, reducer);
+  }
+
+  if (model.effects) {
+    injectEffects(model.namespace, model.effects);
+  }
+
+  return {
+    selectors: selectors
+  };
+}
+
+/**
  *
  * @param {Object} model
  * {
@@ -369,13 +380,11 @@ function model(model) {
   var _createModel = createModel(model),
       selectors = _createModel.selectors;
 
-  console.log(selectors);
-
-  function wrap(Comp) {
-    return reactRedux.connect()(Comp);
+  function Wrap(Component) {
+    return reactRedux.connect(selectors)(Component);
   }
 
-  return wrap;
+  return Wrap;
 }
 
 exports.demacia = demacia;

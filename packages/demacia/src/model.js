@@ -14,9 +14,9 @@ import createModel from './createModel'
 export default function model(model) {
   const { selectors } = createModel(model)
 
-  function wrap(Comp) {
-    return connect(selectors)(Comp)
+  function Wrap(Component) {
+    return connect(selectors)(Component)
   }
 
-  return wrap
+  return Wrap
 }

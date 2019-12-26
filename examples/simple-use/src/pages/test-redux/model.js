@@ -1,26 +1,27 @@
 import { model } from 'demacia'
+import { createStructuredSelector } from 'reselect'
 
 export default model({
   namespace: 'testRedux',
-  selectors: state => {
-    return { ...state }
-  },
+  selectors: createStructuredSelector({
+    todos: state => state.testRedux.todos,
+  }),
   state: {
-    todos: []
+    todos: [],
   },
   reducers: {
     putTodos(state, { payload }) {
       return {
         ...state,
-        todos: payload || []
+        todos: payload || [],
       }
     },
     putAdd(state, { payload }) {
       return {
         ...state,
-        todos: [...state.todos, payload]
+        todos: [...state.todos, payload],
       }
-    }
+    },
   },
   effects: {
     async getTodos({ dispatch }) {
@@ -30,8 +31,8 @@ export default model({
             code: 0,
             datas: [
               { name: '🍎', id: 1 },
-              { name: '🍆', id: 2 }
-            ]
+              { name: '🍆', id: 2 },
+            ],
           })
         }, 1000)
       })
@@ -43,13 +44,13 @@ export default model({
       const { code } = await new Promise(resolve => {
         setTimeout(() => {
           resolve({
-            code: 0
+            code: 0,
           })
         }, 200)
       })
       if (code === 0) {
         dispatch({ type: 'putAdd', payload: payload })
       }
-    }
-  }
+    },
+  },
 })
