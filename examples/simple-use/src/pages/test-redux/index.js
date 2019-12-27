@@ -3,31 +3,28 @@ import Counter from './components/Counter'
 import model from './model'
 
 const TestRedux = props => {
-  console.log(props)
+  // console.log(props)
 
-  const { dispatch, todos = [] } = props
+  const { todos = [], total, getTodos, loading } = props
   const [input, setInput] = useState('')
   useEffect(() => {
-    dispatch({
-      type: 'testRedux/getTodos',
-    })
-  }, [dispatch])
+    getTodos()
+  }, [getTodos])
+  // console.log('loading', loading)
 
   return (
     <div>
-      <h2>水果蔬菜</h2>
+      <h2>水果蔬菜(total: {total})</h2>
       <div>
         <input value={input} onChange={e => setInput(e.target.value)} />
         <button
           onClick={async () => {
-            await dispatch({
-              type: 'testRedux/add',
-              payload: {
-                name: input,
-                id: Math.random()
-                  .toString(16)
-                  .slice(2),
-              },
+            await props.add({
+              name: input,
+              id: Math.random()
+                .toString(16)
+                .slice(2),
+              count: parseInt(Math.random() * 10)
             })
             setInput('')
           }}
@@ -35,11 +32,31 @@ const TestRedux = props => {
           添加
         </button>
       </div>
-      <ul>
-        {todos.map(fruit => (
-          <li key={fruit.id}>{fruit.name}</li>
-        ))}
-      </ul>
+      {loading.includes('getTodos') ? (
+        'loading...'
+      ) : (
+        <ul>
+          {todos.map(fruit => (
+            <li key={fruit.id}>{fruit.name}</li>
+          ))}
+        </ul>
+      )}
+      <div>
+        <button
+          onClick={() => {
+            props.resetStore()
+          }}
+        >
+          resetStore
+        </button>
+        <button
+          onClick={() => {
+            props.setStore('haha')
+          }}
+        >
+          setStore
+        </button>
+      </div>
       <Counter />
     </div>
   )

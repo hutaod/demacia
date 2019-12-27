@@ -381,10 +381,30 @@ function model(model) {
       selectors = _createModel.selectors;
 
   function Wrap(Component) {
-    return reactRedux.connect(selectors)(Component);
+    return reactRedux.connect(selectors, createActions(model))(Component);
   }
 
   return Wrap;
+}
+
+function createActions(model) {
+  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+    result[effectKey] = function () {
+      for (var _len = arguments.length, rest = new Array(_len), _key = 0; _key < _len; _key++) {
+        rest[_key] = arguments[_key];
+      }
+
+      return {
+        type: "".concat(model.namespace, "/").concat(effectKey),
+        payload: rest
+      };
+    };
+
+    return result;
+  }, {});
+  return function (dispatch) {
+    return redux.bindActionCreators(effectFuncs, dispatch);
+  };
 }
 
 exports.demacia = demacia;

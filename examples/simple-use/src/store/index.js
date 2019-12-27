@@ -1,4 +1,4 @@
-import { demacia } from 'demacia'
+import { demacia } from '../demacia'
 import global from './global'
 
 const initialModels = {

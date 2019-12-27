@@ -2,7 +2,7 @@ import _toConsumableArray from '@babel/runtime/helpers/esm/toConsumableArray';
 import _defineProperty from '@babel/runtime/helpers/esm/defineProperty';
 import _objectWithoutProperties from '@babel/runtime/helpers/esm/objectWithoutProperties';
 import _typeof from '@babel/runtime/helpers/esm/typeof';
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import { combineReducers, createStore, applyMiddleware, compose, bindActionCreators } from 'redux';
 import isNode from 'detect-node';
 import invariant from 'invariant';
 import { connect } from 'react-redux';
@@ -263,10 +263,30 @@ function model(model) {
       selectors = _createModel.selectors;
 
   function Wrap(Component) {
-    return connect(selectors)(Component);
+    return connect(selectors, createActions(model))(Component);
   }
 
   return Wrap;
+}
+
+function createActions(model) {
+  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+    result[effectKey] = function () {
+      for (var _len = arguments.length, rest = new Array(_len), _key = 0; _key < _len; _key++) {
+        rest[_key] = arguments[_key];
+      }
+
+      return {
+        type: "".concat(model.namespace, "/").concat(effectKey),
+        payload: rest
+      };
+    };
+
+    return result;
+  }, {});
+  return function (dispatch) {
+    return bindActionCreators(effectFuncs, dispatch);
+  };
 }
 
 export { demacia, model };
