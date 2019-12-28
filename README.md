@@ -1,3 +1,5 @@
+![亚瑟](docs/images/yase.jpeg)
+
 # 打造一个 redux 数据流方案 --- 名为 demacia
 
 目的：打造一个简单的 redux 数据流方案，实现功能类似与 dva，但仅仅只是对 redux 进行封装，简化 redux 使用流程和难度。最终目的肯定是为了提升开发效率和加深自己对 redux 源码的理解能力和运用能力
@@ -49,4 +51,4 @@ const store = demacia({
 export default store
 ```
 
-上面的代码中，我们引入了 demacia 函数，并调用它，然后返回了 store，这个 store 就是 redux 的 store
+上面的代码中，我们引入了 demacia 函数，并调用它，然后返回了 store，这个 store 就是调用 redux 的 createStore 而生成的，我们在调用 demacia 函数时传入了一个对象作为参数，并包含了两个初始化属性，initialModels 用于注入 model 数据，initialState 用于设置 redux 初始 state
