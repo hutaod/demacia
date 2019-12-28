@@ -269,16 +269,37 @@ function createEffectsMiddle(effectsExtraArgument) {
           var actualtype = actionType[1];
 
           if (allEffects[namespace] && allEffects[namespace][actualtype]) {
-            return allEffects[namespace][actualtype](_objectSpread2({
-              dispatch: function dispatch(_ref) {
-                var type = _ref.type,
-                    rest = _objectWithoutProperties(_ref, ["type"]);
+            _dispatch({
+              type: "".concat(namespace, "/@@setLoading"),
+              payload: actualtype
+            });
 
-                return _dispatch(_objectSpread2({
-                  type: "".concat(namespace, "/").concat(type)
-                }, rest));
-              }
-            }, effectsExtraArgument), _objectSpread2({}, args));
+            return new Promise(function (resolve, reject) {
+              allEffects[namespace][actualtype](_objectSpread2({
+                dispatch: function dispatch(_ref) {
+                  var type = _ref.type,
+                      rest = _objectWithoutProperties(_ref, ["type"]);
+
+                  return _dispatch(_objectSpread2({
+                    type: "".concat(namespace, "/").concat(type)
+                  }, rest));
+                }
+              }, effectsExtraArgument), _objectSpread2({}, args)).then(function (res) {
+                resolve(res);
+
+                _dispatch({
+                  type: "".concat(namespace, "/@@deleteLoading"),
+                  payload: actualtype
+                });
+              }).catch(function (err) {
+                reject(err);
+
+                _dispatch({
+                  type: "".concat(namespace, "/@@deleteLoading"),
+                  payload: actualtype
+                });
+              });
+            });
           }
 
           return _dispatch(action);
@@ -345,6 +366,10 @@ function createModel(model) {
 
   var selectors = null;
 
+  if (!model.state.loading) {
+    model.state.loading = [];
+  }
+
   if (model.selectors) {
     selectors = function selectors(state) {
       return model.selectors(state);
@@ -352,6 +377,29 @@ function createModel(model) {
   }
 
   if (model.reducers) {
+    // 给所有model 的 reducers添加上resetStore
+    model.reducers['resetStore'] = function () {
+      return model.state;
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@setLoading'] = function (state, _ref) {
+      var effectName = _ref.payload;
+      return _objectSpread2({}, state, {
+        loading: [].concat(_toConsumableArray(state.loading), [effectName])
+      });
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@deleteLoading'] = function (state, _ref2) {
+      var effectName = _ref2.payload;
+      return _objectSpread2({}, state, {
+        loading: state.loading.filter(function (item) {
+          return item !== effectName;
+        })
+      });
+    };
+
     var reducer = createReducers(model);
     injectReducer(model.namespace, reducer);
   }
@@ -382,28 +430,44 @@ function model(model) {
 
   function Wrap(Component) {
     return reactRedux.connect(selectors, createActions(model))(Component);
-  }
+  } // Wrap.effects = model.effects
+  // Wrap.effects = model.effects
+
 
   return Wrap;
 }
 
 function createActions(model) {
-  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
-    result[effectKey] = function () {
-      for (var _len = arguments.length, rest = new Array(_len), _key = 0; _key < _len; _key++) {
-        rest[_key] = arguments[_key];
-      }
+  // 传递给组件直接操作redux的方法
+  var reducerFuncs = {
+    resetStore: function resetStore() {
+      return {
+        type: "".concat(model.namespace, "/resetStore")
+      };
+    },
+    setStore: function setStore(data) {
+      return {
+        type: "".concat(model.namespace, "/setStore"),
+        payload: data
+      };
+    }
+  }; // 把调用effects的actionCreater方法直接传递给组件
 
+  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+    result[effectKey] = function (payload) {
       return {
         type: "".concat(model.namespace, "/").concat(effectKey),
-        payload: rest
+        payload: payload
       };
     };
 
     return result;
   }, {});
+
+  var propsFuncs = _objectSpread2({}, reducerFuncs, {}, effectFuncs);
+
   return function (dispatch) {
-    return redux.bindActionCreators(effectFuncs, dispatch);
+    return redux.bindActionCreators(propsFuncs, dispatch);
   };
 }
 

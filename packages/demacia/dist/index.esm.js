@@ -151,16 +151,37 @@ function createEffectsMiddle(effectsExtraArgument) {
           var actualtype = actionType[1];
 
           if (allEffects[namespace] && allEffects[namespace][actualtype]) {
-            return allEffects[namespace][actualtype](_objectSpread({
-              dispatch: function dispatch(_ref) {
-                var type = _ref.type,
-                    rest = _objectWithoutProperties(_ref, ["type"]);
+            _dispatch({
+              type: "".concat(namespace, "/@@setLoading"),
+              payload: actualtype
+            });
 
-                return _dispatch(_objectSpread({
-                  type: "".concat(namespace, "/").concat(type)
-                }, rest));
-              }
-            }, effectsExtraArgument), _objectSpread({}, args));
+            return new Promise(function (resolve, reject) {
+              allEffects[namespace][actualtype](_objectSpread({
+                dispatch: function dispatch(_ref) {
+                  var type = _ref.type,
+                      rest = _objectWithoutProperties(_ref, ["type"]);
+
+                  return _dispatch(_objectSpread({
+                    type: "".concat(namespace, "/").concat(type)
+                  }, rest));
+                }
+              }, effectsExtraArgument), _objectSpread({}, args)).then(function (res) {
+                resolve(res);
+
+                _dispatch({
+                  type: "".concat(namespace, "/@@deleteLoading"),
+                  payload: actualtype
+                });
+              }).catch(function (err) {
+                reject(err);
+
+                _dispatch({
+                  type: "".concat(namespace, "/@@deleteLoading"),
+                  payload: actualtype
+                });
+              });
+            });
           }
 
           return _dispatch(action);
@@ -215,6 +236,9 @@ function demacia(_ref2) {
   return store;
 }
 
+function ownKeys$1(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread$1(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$1(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$1(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 /**
  * 处理model
  * @param {Object} model
@@ -227,6 +251,10 @@ function createModel(model) {
 
   var selectors = null;
 
+  if (!model.state.loading) {
+    model.state.loading = [];
+  }
+
   if (model.selectors) {
     selectors = function selectors(state) {
       return model.selectors(state);
@@ -234,6 +262,29 @@ function createModel(model) {
   }
 
   if (model.reducers) {
+    // 给所有model 的 reducers添加上resetStore
+    model.reducers['resetStore'] = function () {
+      return model.state;
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@setLoading'] = function (state, _ref) {
+      var effectName = _ref.payload;
+      return _objectSpread$1({}, state, {
+        loading: [].concat(_toConsumableArray(state.loading), [effectName])
+      });
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@deleteLoading'] = function (state, _ref2) {
+      var effectName = _ref2.payload;
+      return _objectSpread$1({}, state, {
+        loading: state.loading.filter(function (item) {
+          return item !== effectName;
+        })
+      });
+    };
+
     var reducer = createReducers(model);
     injectReducer(model.namespace, reducer);
   }
@@ -247,6 +298,9 @@ function createModel(model) {
   };
 }
 
+function ownKeys$2(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread$2(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$2(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$2(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 /**
  *
  * @param {Object} model
@@ -264,28 +318,44 @@ function model(model) {
 
   function Wrap(Component) {
     return connect(selectors, createActions(model))(Component);
-  }
+  } // Wrap.effects = model.effects
+  // Wrap.effects = model.effects
+
 
   return Wrap;
 }
 
 function createActions(model) {
-  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
-    result[effectKey] = function () {
-      for (var _len = arguments.length, rest = new Array(_len), _key = 0; _key < _len; _key++) {
-        rest[_key] = arguments[_key];
-      }
+  // 传递给组件直接操作redux的方法
+  var reducerFuncs = {
+    resetStore: function resetStore() {
+      return {
+        type: "".concat(model.namespace, "/resetStore")
+      };
+    },
+    setStore: function setStore(data) {
+      return {
+        type: "".concat(model.namespace, "/setStore"),
+        payload: data
+      };
+    }
+  }; // 把调用effects的actionCreater方法直接传递给组件
 
+  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+    result[effectKey] = function (payload) {
       return {
         type: "".concat(model.namespace, "/").concat(effectKey),
-        payload: rest
+        payload: payload
       };
     };
 
     return result;
   }, {});
+
+  var propsFuncs = _objectSpread$2({}, reducerFuncs, {}, effectFuncs);
+
   return function (dispatch) {
-    return bindActionCreators(effectFuncs, dispatch);
+    return bindActionCreators(propsFuncs, dispatch);
   };
 }
 
