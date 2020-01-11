@@ -8,6 +8,8 @@ const TestRedux = props => {
   const { todos = [], total, getTodos, loading } = props
   const [input, setInput] = useState('')
   useEffect(() => {
+    console.log(model.effects)
+
     getTodos()
   }, [getTodos])
   // console.log('loading', loading)

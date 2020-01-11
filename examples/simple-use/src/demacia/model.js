@@ -14,13 +14,10 @@ import createModel from './createModel'
  */
 export default function model(model) {
   const { selectors } = createModel(model)
-
+  const actions = createActions(model)
   function Wrap(Component) {
-    return connect(selectors, createActions(model))(Component)
+    return connect(selectors, actions)(Component)
   }
-
-  // Wrap.effects = model.effects
-  // Wrap.effects = model.effects
 
   return Wrap
 }

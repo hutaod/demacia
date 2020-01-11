@@ -131,9 +131,16 @@ function demacia({
   if (!isNode) {
     composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
   }
+  // 可能初始化的时候allReducer还为空对象
+  const reducer =
+    Object.keys(allReducer).length > 0
+      ? combineReducers(allReducer)
+      : function reducer(state) {
+          return state
+        }
   // 创建store
   store = createStore(
-    combineReducers(allReducer),
+    reducer,
     initialState,
     composeEnhancers(applyMiddleware(effectsMiddle, ...middlewares))
   )
