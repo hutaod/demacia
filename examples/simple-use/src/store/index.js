@@ -1,19 +1,19 @@
-import { demacia } from '../demacia'
+import { demacia } from 'demacia'
 import global from './global'
 
 const initialModels = {
-  global
+	global,
 }
 
 const initialState = {
-  global: {
-    counter: 2
-  }
+	global: {
+		counter: 2,
+	},
 }
 
 const store = demacia({
-  initialModels,
-  initialState
+	initialModels,
+	initialState,
 })
 
 export default store
