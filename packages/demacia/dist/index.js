@@ -275,7 +275,7 @@ function createEffectsMiddle(effectsExtraArgument) {
             });
 
             return new Promise(function (resolve, reject) {
-              var state = store.getStore();
+              var state = store.getState();
               allEffects[namespace][actualtype](_objectSpread2({}, effectsExtraArgument, {
                 dispatch: function dispatch(_ref) {
                   var type = _ref.type,
