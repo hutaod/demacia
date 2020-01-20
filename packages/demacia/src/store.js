@@ -65,7 +65,7 @@ function createEffectsMiddle(effectsExtraArgument) {
       if (allEffects[namespace] && allEffects[namespace][actualtype]) {
         dispatch({ type: `${namespace}/@@setLoading`, payload: actualtype })
         return new Promise((resolve, reject) => {
-          const state = store.getStore()
+          const state = store.getState()
           allEffects[namespace][actualtype](
             {
               ...effectsExtraArgument,

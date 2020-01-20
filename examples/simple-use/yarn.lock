@@ -3675,10 +3675,10 @@ delayed-stream@~1.0.0:
   resolved "https://registry.yarnpkg.com/delayed-stream/-/delayed-stream-1.0.0.tgz#df3ae199acadfb7d440aaae0b29e2272b24ec619"
   integrity sha1-3zrhmayt+31ECqrgsp4icrJOxhk=
 
-demacia@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/demacia/-/demacia-1.0.4.tgz#77b9a5d8bd83e712a46dfa4f92da479380d92f62"
-  integrity sha512-mL8sLiMYiyDdPAur4s/s+uQwsxHpFuoGIXLMhn+upGl2i9FbRX0m++i2rh3D15wu7UfLfL6IW5rhWe5L37CAgA==
+demacia@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/demacia/-/demacia-1.0.5.tgz#d088fd6d1689a26ad79e875d7b34341ba5d4e0ef"
+  integrity sha512-FUZiCGaPxVOwCRbWeV/A36zmrlzAf8L7GX0KQHMJFxBBbPWeXl0PNV+5yLSmqy/LKidqrYn986rRPSp8L44l2A==
   dependencies:
     "@babel/runtime" "^7.0.0"
 

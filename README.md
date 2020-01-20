@@ -228,9 +228,10 @@ export default model({
 - `state` 存储的数据
 - `reducers` 存储的是一个对象，对象的键是 action 的 type，值是一个函数，接收两个参数：state 和 action 对象，执行 reducer 过程中需要执行的部分，函数的返回值是新的 `state`
 - `effects` 处理副作用的地方，每一个属性都必须函数，类似前面的`reducers`，接收两个参数：
-  - 第一参数是一个对象，包含了强化后的`dispatch`和一些扩展（初始化的时候传入的`effectsExtraArgument`对象就会合并到这个参数里面）
+  - 第一参数是一个对象，包含了强化后的`dispatch`和 state，以及一些扩展（初始化的时候传入的`effectsExtraArgument`对象就会合并到这个参数里面）
+  - 第二个参数是也是一个对象，仅包含一个`payload`属性
 
-编写页面: 引入 model
+编写页面: 组件引入 model
 
 ```js
 // src/pages/a/index.js
