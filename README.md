@@ -223,20 +223,29 @@ export default model({
 
 上面需要注意的几点：
 
+一，model 函数接收了以下参数：
+
 - `namespace` reducer 的名称，给 `combineReducers` 合并 reducers 用的
 - `selectors` 相当于 react-redux 中的 connect 的第一个参数（mapStateToProps），会传入 state，需要返回一个对象，并合并到组件的 props
-- `state` 存储的数据
+- `state` 存储的数据，从上方代码`selectors`上可以看出多 state 中出现了`loading`,`loading`是内置的，它是一个数组，存储正在执行中的`effects`键
 - `reducers` 存储的是一个对象，对象的键是 action 的 type，值是一个函数，接收两个参数：state 和 action 对象，执行 reducer 过程中需要执行的部分，函数的返回值是新的 `state`
 - `effects` 处理副作用的地方，每一个属性都必须函数，类似前面的`reducers`，接收两个参数：
   - 第一参数是一个对象，包含了强化后的`dispatch`和 state，以及一些扩展（初始化的时候传入的`effectsExtraArgument`对象就会合并到这个参数里面）
   - 第二个参数是也是一个对象，仅包含一个`payload`属性
 
-编写页面: 组件引入 model
+二，model 函数执行后返回了一个高阶函数
+
+组件引入 model，用 model 函数执行后返回的高阶函数包裹组件，这里会做三件事：
+
+1. 把`selectors`执行的结果返回的对象加入到组件的 props
+2. 把`effects`对象结构注入到组件的 props
+3. 把内置的 `resetStore` 和 `setStore` 方法注入到组件的 props，执行是分别会触发两个 action，`resetStore`的 action 会把数据重置为最初的数据，`setStore`需要开发者在对应的`reducers`里自定义一个`setStore`函数
+
+下面是编写页面，引入 model 后可以获取数据并实现一些功能：
 
 ```js
 // src/pages/a/index.js
 import React, { useEffect, useState } from 'react'
-import Counter from './components/Counter'
 import model from './model'
 
 const Todos = props => {
@@ -297,3 +306,16 @@ const Todos = props => {
 
 export default model(Todos)
 ```
+
+## 实现介绍
+
+从上面可以看出，`demacia`只有两个 api：
+
+- `demacia` 用于初始化 store 用的，可以接收四个参数
+  - initialState 初始化数据参数，写法是:`{ [model对应的namespace]: model对应的state初始值 }`
+  - initialModels 初始化 model，参考上面的`创建 store`部分
+  - middlewares 中间件 这里你可以加入其他的中间件进行扩展
+  - effectsExtraArgument 额外参数，这里的参数会在 effects 的属性方法的第一个参数对象中出现
+- `model` 用于生成 reducer，并把新的 reducer 合并到项目的 reducers 中，使用方法上面有讲到，参考上面的应该就可以了
+
+实现主要是把一些过程给封装，让在项目中使用更简单。源码地址在这:[https://github.com/ht1131589588/demacia.git](https://github.com/ht1131589588/demacia.git)

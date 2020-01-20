@@ -151,7 +151,3 @@ function demacia({
 }
 
 export default demacia
-
-export function getStore() {
-  return store
-}
