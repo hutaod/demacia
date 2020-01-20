@@ -78,7 +78,7 @@ function createReducers(model) {
 
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 var store = null;
 var allReducer = {};
 var allEffects = {};
@@ -212,8 +212,9 @@ function demacia(_ref2) {
         }
 
         if (initialModel.reducers) {
-          var reducer = createReducers(initialModel);
-          injectReducer(initialModel.namespace, reducer);
+          var _reducer = createReducers(initialModel);
+
+          injectReducer(initialModel.namespace, _reducer);
         }
 
         if (initialModel.effects) {
@@ -229,16 +230,20 @@ function demacia(_ref2) {
 
   if (!isNode) {
     composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-  } // 创建store
+  } // 可能初始化的时候allReducer还为空对象
 
 
-  store = createStore(combineReducers(allReducer), initialState, composeEnhancers(applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
+  var reducer = Object.keys(allReducer).length > 0 ? combineReducers(allReducer) : function reducer(state) {
+    return state;
+  }; // 创建store
+
+  store = createStore(reducer, initialState, composeEnhancers(applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
   return store;
 }
 
 function ownKeys$1(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
-function _objectSpread$1(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$1(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$1(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+function _objectSpread$1(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$1(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$1(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 /**
  * 处理model
  * @param {Object} model
@@ -300,7 +305,7 @@ function createModel(model) {
 
 function ownKeys$2(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
 
-function _objectSpread$2(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$2(source, true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$2(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+function _objectSpread$2(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys$2(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys$2(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 /**
  *
  * @param {Object} model
@@ -316,11 +321,11 @@ function model(model) {
   var _createModel = createModel(model),
       selectors = _createModel.selectors;
 
-  function Wrap(Component) {
-    return connect(selectors, createActions(model))(Component);
-  } // Wrap.effects = model.effects
-  // Wrap.effects = model.effects
+  var actions = createActions(model);
 
+  function Wrap(Component) {
+    return connect(selectors, actions)(Component);
+  }
 
   return Wrap;
 }
@@ -339,18 +344,22 @@ function createActions(model) {
         payload: data
       };
     }
-  }; // 把调用effects的actionCreater方法直接传递给组件
+  };
+  var effectFuncs = {};
 
-  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
-    result[effectKey] = function (payload) {
-      return {
-        type: "".concat(model.namespace, "/").concat(effectKey),
-        payload: payload
+  if (model.effects) {
+    // 把调用effects的actionCreater方法直接传递给组件
+    effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+      result[effectKey] = function (payload) {
+        return {
+          type: "".concat(model.namespace, "/").concat(effectKey),
+          payload: payload
+        };
       };
-    };
 
-    return result;
-  }, {});
+      return result;
+    }, {});
+  }
 
   var propsFuncs = _objectSpread$2({}, reducerFuncs, {}, effectFuncs);
 

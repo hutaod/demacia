@@ -57,13 +57,13 @@ function _objectSpread2(target) {
     var source = arguments[i] != null ? arguments[i] : {};
 
     if (i % 2) {
-      ownKeys(source, true).forEach(function (key) {
+      ownKeys(Object(source), true).forEach(function (key) {
         _defineProperty(target, key, source[key]);
       });
     } else if (Object.getOwnPropertyDescriptors) {
       Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
     } else {
-      ownKeys(source).forEach(function (key) {
+      ownKeys(Object(source)).forEach(function (key) {
         Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
       });
     }
@@ -330,8 +330,9 @@ function demacia(_ref2) {
         }
 
         if (initialModel.reducers) {
-          var reducer = createReducers(initialModel);
-          injectReducer(initialModel.namespace, reducer);
+          var _reducer = createReducers(initialModel);
+
+          injectReducer(initialModel.namespace, _reducer);
         }
 
         if (initialModel.effects) {
@@ -347,10 +348,14 @@ function demacia(_ref2) {
 
   if (!isNode) {
     composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || redux.compose;
-  } // 创建store
+  } // 可能初始化的时候allReducer还为空对象
 
 
-  store = redux.createStore(redux.combineReducers(allReducer), initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
+  var reducer = Object.keys(allReducer).length > 0 ? redux.combineReducers(allReducer) : function reducer(state) {
+    return state;
+  }; // 创建store
+
+  store = redux.createStore(reducer, initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
   return store;
 }
 
@@ -428,11 +433,11 @@ function model(model) {
   var _createModel = createModel(model),
       selectors = _createModel.selectors;
 
-  function Wrap(Component) {
-    return reactRedux.connect(selectors, createActions(model))(Component);
-  } // Wrap.effects = model.effects
-  // Wrap.effects = model.effects
+  var actions = createActions(model);
 
+  function Wrap(Component) {
+    return reactRedux.connect(selectors, actions)(Component);
+  }
 
   return Wrap;
 }
@@ -451,18 +456,22 @@ function createActions(model) {
         payload: data
       };
     }
-  }; // 把调用effects的actionCreater方法直接传递给组件
+  };
+  var effectFuncs = {};
 
-  var effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
-    result[effectKey] = function (payload) {
-      return {
-        type: "".concat(model.namespace, "/").concat(effectKey),
-        payload: payload
+  if (model.effects) {
+    // 把调用effects的actionCreater方法直接传递给组件
+    effectFuncs = Object.keys(model.effects).reduce(function (result, effectKey) {
+      result[effectKey] = function (payload) {
+        return {
+          type: "".concat(model.namespace, "/").concat(effectKey),
+          payload: payload
+        };
       };
-    };
 
-    return result;
-  }, {});
+      return result;
+    }, {});
+  }
 
   var propsFuncs = _objectSpread2({}, reducerFuncs, {}, effectFuncs);
 
