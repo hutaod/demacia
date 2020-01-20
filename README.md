@@ -318,4 +318,17 @@ export default model(Todos)
   - effectsExtraArgument 额外参数，这里的参数会在 effects 的属性方法的第一个参数对象中出现
 - `model` 用于生成 reducer，并把新的 reducer 合并到项目的 reducers 中，使用方法上面有讲到，参考上面的应该就可以了
 
-实现主要是把一些过程给封装，让在项目中使用更简单。源码地址在这:[https://github.com/ht1131589588/demacia.git](https://github.com/ht1131589588/demacia.git)
+扩展：
+
+- selectors 可以结合 reselect 来优化性能
+
+功能主要是有
+
+- 把 redux 繁琐的使用过程给封装起来
+- 动态注入 reducer
+- 每个 model 内置了 loading 数组，loading 会收集正在执行过程中的 effects，让在项目可以获取 effects 的执行 状态
+- 添加了一些内置的 action 可以让实际开发中更简单，比如`resetStore`重置 state
+
+源码地址:[https://github.com/ht1131589588/demacia.git](https://github.com/ht1131589588/demacia.git)
+
+Demo 地址: [https://github.com/ht1131589588/demacia/tree/master/examples/simple-use](https://github.com/ht1131589588/demacia/tree/master/examples/simple-use)
