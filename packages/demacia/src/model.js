@@ -33,16 +33,19 @@ function createActions(model) {
       payload: data
     })
   }
-  // 把调用effects的actionCreater方法直接传递给组件
-  const effectFuncs = Object.keys(model.effects).reduce((result, effectKey) => {
-    result[effectKey] = payload => {
-      return {
-        type: `${model.namespace}/${effectKey}`,
-        payload
+  let effectFuncs = {}
+  if (model.effects) {
+    // 把调用effects的actionCreater方法直接传递给组件
+    effectFuncs = Object.keys(model.effects).reduce((result, effectKey) => {
+      result[effectKey] = payload => {
+        return {
+          type: `${model.namespace}/${effectKey}`,
+          payload
+        }
       }
-    }
-    return result
-  }, {})
+      return result
+    }, {})
+  }
   const propsFuncs = { ...reducerFuncs, ...effectFuncs }
   return dispatch => bindActionCreators(propsFuncs, dispatch)
 }
