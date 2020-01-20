@@ -156,17 +156,23 @@ export default connect(state => state)(HomePage)
 
 上面使用的都是全局的 state，如果某个页面或者某个组件想有直接的状态呢，或者说是动态的向 store 添加 state 和 reducer，这时候可以引入 `model` 来进行处理。
 
-下面建一个页面 a，实现一个 `todo list`
+下面建一个页面 Todos，实现一个 `todo list`
 
-`todo list` 需要一个用于存数据的 state，需要一个
+编写输入 Todos 的 model：
 
 ```js
-// src/pages/a/model.js
+// src/pages/todos/model.js
 import { model } from 'demacia'
-import { createStructuredSelector } from 'reselect'
-
 export default model({
-  namespace: 'A',
+  namespace: 'Todos',
+  // 相当于react-redux中的connect的第一个参数，会传入state，返回的对象会返回给组件的props
+  selectors: function(state) {
+    return {
+      todos: state.Todos.todos,
+      loading: state.Todos.loading,
+      total: state.Todos.todos.reduce((acc, item) => acc + (item.count || 0), 0)
+    }
+  },
   state: {
     todos: [{ name: '菠萝', id: 0, count: 2 }]
   },
@@ -213,13 +219,26 @@ export default model({
     }
   }
 })
+```
 
+上面需要注意的几点：
+
+- `namespace` reducer 的名称，给 `combineReducers` 合并 reducers 用的
+- `selectors` 相当于 react-redux 中的 connect 的第一个参数（mapStateToProps），会传入 state，需要返回一个对象，并合并到组件的 props
+- `state` 存储的数据
+- `reducers` 存储的是一个对象，对象的键是 action 的 type，值是一个函数，接收两个参数：state 和 action 对象，执行 reducer 过程中需要执行的部分，函数的返回值是新的 `state`
+- `effects` 处理副作用的地方，每一个属性都必须函数，类似前面的`reducers`，接收两个参数：
+  - 第一参数是一个对象，包含了强化后的`dispatch`和一些扩展（初始化的时候传入的`effectsExtraArgument`对象就会合并到这个参数里面）
+
+编写页面: 引入 model
+
+```js
 // src/pages/a/index.js
 import React, { useEffect, useState } from 'react'
 import Counter from './components/Counter'
 import model from './model'
 
-const A = props => {
+const Todos = props => {
   const { todos = [], total, getTodos, loading } = props
   const [input, setInput] = useState('')
   useEffect(() => {
@@ -271,10 +290,9 @@ const A = props => {
           setStore
         </button>
       </div>
-      <Counter />
     </div>
   )
 }
 
-export default model(A)
+export default model(Todos)
 ```

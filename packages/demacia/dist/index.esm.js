@@ -157,7 +157,8 @@ function createEffectsMiddle(effectsExtraArgument) {
             });
 
             return new Promise(function (resolve, reject) {
-              allEffects[namespace][actualtype](_objectSpread({
+              var state = store.getStore();
+              allEffects[namespace][actualtype](_objectSpread({}, effectsExtraArgument, {
                 dispatch: function dispatch(_ref) {
                   var type = _ref.type,
                       rest = _objectWithoutProperties(_ref, ["type"]);
@@ -165,8 +166,9 @@ function createEffectsMiddle(effectsExtraArgument) {
                   return _dispatch(_objectSpread({
                     type: "".concat(namespace, "/").concat(type)
                   }, rest));
-                }
-              }, effectsExtraArgument), _objectSpread({}, args)).then(function (res) {
+                },
+                state: state[namespace]
+              }), _objectSpread({}, args)).then(function (res) {
                 resolve(res);
 
                 _dispatch({
