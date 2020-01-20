@@ -244,7 +244,7 @@ export default model({
 下面是编写页面，引入 model 后可以获取数据并实现一些功能：
 
 ```js
-// src/pages/a/index.js
+// src/pages/todos/index.js
 import React, { useEffect, useState } from 'react'
 import model from './model'
 
