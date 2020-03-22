@@ -1,0 +1,12 @@
+.notLoad,
+.loadFail {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #ebebeb;
+}
+.loadFail {
+  img {
+    width: 0.6rem;
+  }
+}
