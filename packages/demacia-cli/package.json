@@ -21,10 +21,10 @@
   },
   "files": [
     "index.js",
-    "demaciaCli.js"
+    "demacia.js"
   ],
   "bin": {
-    "demacia": "./index.js"
+    "demacia": "./demacia.js"
   },
   "dependencies": {
     "chalk": "^3.0.0",
