@@ -1,6 +1,6 @@
 {
   "name": "demacia-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "create react app with demacia",
   "main": "index.js",
   "keywords": [
