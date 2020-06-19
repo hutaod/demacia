@@ -24,7 +24,8 @@
     "demacia.js"
   ],
   "bin": {
-    "demacia": "./demacia.js"
+    "demacia": "./demacia.js",
+    "hello": "./hello.js"
   },
   "dependencies": {
     "chalk": "^3.0.0",
