@@ -1,6 +1,6 @@
 {
   "name": "demacia",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "redux model library",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
