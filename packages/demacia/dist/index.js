@@ -6,6 +6,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var redux = require('redux');
 var isNode = _interopDefault(require('detect-node'));
+var merge = _interopDefault(require('lodash/merge'));
 var invariant = _interopDefault(require('invariant'));
 var reactRedux = require('react-redux');
 
@@ -197,9 +198,83 @@ function createReducers(model) {
   };
 }
 
+/**
+ * 处理model
+ * @param {Object} model
+ */
+
+function createModel(model) {
+  if (!isNode) {
+    checkModel(model, allModels);
+  }
+
+  var selectors = null;
+
+  if (!model.state.loading) {
+    model.state.loading = [];
+  } // 用于支持 selectors
+
+
+  if (model.selectors) {
+    selectors = function selectors(state) {
+      return model.selectors(state);
+    };
+  }
+
+  if (model.reducers) {
+    // 给所有model 的 reducers添加上resetStore
+    model.reducers['resetStore'] = function () {
+      return model.state;
+    }; // 给所有model 的 reducers添加上setStore，但可以也model重置
+
+
+    var customSetStore = model.reducers.setStore;
+
+    model.reducers['setStore'] = function (state, _ref) {
+      var payload = _ref.payload;
+
+      if (customSetStore) {
+        return customSetStore(state, payload);
+      }
+
+      return merge(state, payload);
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@setLoading'] = function (state, _ref2) {
+      var effectName = _ref2.payload;
+      return _objectSpread2({}, state, {
+        loading: [].concat(_toConsumableArray(state.loading), [effectName])
+      });
+    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
+
+
+    model.reducers['@@deleteLoading'] = function (state, _ref3) {
+      var effectName = _ref3.payload;
+      return _objectSpread2({}, state, {
+        loading: state.loading.filter(function (item) {
+          return item !== effectName;
+        })
+      });
+    };
+
+    var reducer = createReducers(model);
+    injectReducer(model.namespace, reducer);
+  }
+
+  if (model.effects) {
+    injectEffects(model.namespace, model.effects);
+  }
+
+  return {
+    selectors: selectors
+  };
+}
+
 var store = null;
 var allReducer = {};
 var allEffects = {};
+var inActionEffectsInfos = {};
 var allModels = {};
 /**
  * 动态注入reducer
@@ -269,39 +344,70 @@ function createEffectsMiddle(effectsExtraArgument) {
           var actualtype = actionType[1];
 
           if (allEffects[namespace] && allEffects[namespace][actualtype]) {
-            _dispatch({
-              type: "".concat(namespace, "/@@setLoading"),
-              payload: actualtype
-            });
+            // 搜集所有执行中effects
+            var effectName = "".concat(namespace, "/").concat(actualtype); // 浏览器端 __LOADED__ 为true时，直接返回，不进行异步操作
 
-            return new Promise(function (resolve, reject) {
-              var state = store.getState();
-              allEffects[namespace][actualtype](_objectSpread2({}, effectsExtraArgument, {
-                dispatch: function dispatch(_ref) {
-                  var type = _ref.type,
-                      rest = _objectWithoutProperties(_ref, ["type"]);
+            if (!isNode && store.getState()[namespace].__LOADED__) {
+              return _dispatch({
+                type: "".concat(namespace, "/setStore"),
+                payload: {
+                  __LOADED__: null
+                }
+              });
+            }
 
-                  return _dispatch(_objectSpread2({
-                    type: "".concat(namespace, "/").concat(type)
-                  }, rest));
-                },
-                state: state[namespace]
-              }), _objectSpread2({}, args)).then(function (res) {
-                resolve(res);
+            if (!isNode) {
+              // 开始执行 异步操作
+              _dispatch({
+                type: "".concat(namespace, "/@@setLoading"),
+                payload: actualtype
+              });
+            } // 服务端渲染时，如果已经在异步操作时，直接返回已存在的异步操作
 
-                _dispatch({
-                  type: "".concat(namespace, "/@@deleteLoading"),
-                  payload: actualtype
-                });
-              }).catch(function (err) {
-                reject(err);
 
-                _dispatch({
-                  type: "".concat(namespace, "/@@deleteLoading"),
-                  payload: actualtype
+            if (isNode) {
+              _dispatch({
+                type: "".concat(namespace, "/setStore"),
+                payload: {
+                  __LOADED__: true
+                }
+              });
+
+              if (inActionEffectsInfos[effectName]) {
+                return inActionEffectsInfos[effectName];
+              }
+            } // 异步操作，添加Promise.resolve().then来保证异步执行
+
+
+            var effectFunc = Promise.resolve().then(function () {
+              return new Promise(function (resolve, reject) {
+                var state = store.getState();
+                allEffects[namespace][actualtype](_objectSpread2({}, effectsExtraArgument, {
+                  dispatch: function dispatch(_ref) {
+                    var type = _ref.type,
+                        rest = _objectWithoutProperties(_ref, ["type"]);
+
+                    return _dispatch(_objectSpread2({
+                      type: "".concat(namespace, "/").concat(type)
+                    }, rest));
+                  },
+                  state: state[namespace]
+                }), _objectSpread2({}, args)).then(resolve).catch(reject).finally(function () {
+                  if (!isNode) {
+                    _dispatch({
+                      type: "".concat(namespace, "/@@deleteLoading"),
+                      payload: actualtype
+                    });
+                  }
+
+                  if (inActionEffectsInfos[effectName]) {
+                    delete inActionEffectsInfos[effectName];
+                  }
                 });
               });
             });
+            inActionEffectsInfos[effectName] = effectFunc;
+            return inActionEffectsInfos[effectName];
           }
 
           return _dispatch(action);
@@ -327,19 +433,7 @@ function demacia(_ref2) {
       var initialModel = initialModels[key];
 
       if (isPlainObject(initialModel)) {
-        if (!isNode) {
-          checkModel(initialModel, allModels);
-        }
-
-        if (initialModel.reducers) {
-          var _reducer = createReducers(initialModel);
-
-          injectReducer(initialModel.namespace, _reducer);
-        }
-
-        if (initialModel.effects) {
-          injectEffects(initialModel.namespace, initialModel.effects);
-        }
+        createModel(initialModel);
       }
     }
   } // effects处理的中间件
@@ -357,67 +451,25 @@ function demacia(_ref2) {
     return state;
   }; // 创建store
 
-  store = redux.createStore(reducer, initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares)))));
-  return store;
-}
+  store = redux.createStore(reducer, initialState, composeEnhancers(redux.applyMiddleware.apply(void 0, [effectsMiddle].concat(_toConsumableArray(middlewares))))); // 用于手动执行所有的effetcs
+  // 一般用于服务端渲染时
 
-/**
- * 处理model
- * @param {Object} model
- */
-
-function createModel(model) {
-  if (!isNode) {
-    checkModel(model, allModels);
-  }
-
-  var selectors = null;
-
-  if (!model.state.loading) {
-    model.state.loading = [];
-  }
-
-  if (model.selectors) {
-    selectors = function selectors(state) {
-      return model.selectors(state);
-    };
-  }
-
-  if (model.reducers) {
-    // 给所有model 的 reducers添加上resetStore
-    model.reducers['resetStore'] = function () {
-      return model.state;
-    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
-
-
-    model.reducers['@@setLoading'] = function (state, _ref) {
-      var effectName = _ref.payload;
-      return _objectSpread2({}, state, {
-        loading: [].concat(_toConsumableArray(state.loading), [effectName])
-      });
-    }; // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
-
-
-    model.reducers['@@deleteLoading'] = function (state, _ref2) {
-      var effectName = _ref2.payload;
-      return _objectSpread2({}, state, {
-        loading: state.loading.filter(function (item) {
-          return item !== effectName;
-        })
-      });
-    };
-
-    var reducer = createReducers(model);
-    injectReducer(model.namespace, reducer);
-  }
-
-  if (model.effects) {
-    injectEffects(model.namespace, model.effects);
-  }
-
-  return {
-    selectors: selectors
+  store.runEffects = function (namespace) {
+    var allPromise = [];
+    Object.keys(inActionEffectsInfos).filter(function (a) {
+      return !!a;
+    }).forEach(function (actionType) {
+      if (!namespace || actionType.indexOf("".concat(namespace, "/")) === 0) {
+        if (inActionEffectsInfos[actionType]) {
+          allPromise.push(inActionEffectsInfos[actionType]);
+        }
+      }
+    });
+    inActionEffectsInfos = {};
+    return allPromise;
   };
+
+  return store;
 }
 
 /**
