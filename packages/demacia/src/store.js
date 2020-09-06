@@ -1,12 +1,12 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
 import isNode from 'detect-node'
 import isPlainObject from './utils/isPlainObject'
-import checkModel from './utils/checkModel'
-import createReducers from './createReducers'
+import createModel from './createModel'
 
 let store = null
 const allReducer = {}
 const allEffects = {}
+let inActionEffectsInfos = {}
 export const allModels = {}
 
 /**
@@ -14,7 +14,7 @@ export const allModels = {}
  * @param {String} namespace
  * @param {Function} reducer
  */
-export function injectReducer(namespace, reducer) {
+export function injectReducer (namespace, reducer) {
   if (!namespace || typeof namespace !== 'string') {
     if (process.env.NODE_ENV !== 'production') {
       throw Error('error')
@@ -38,7 +38,7 @@ export function injectReducer(namespace, reducer) {
  * @param {String} namespace
  * @param {Function} effects
  */
-export function injectEffects(namespace, effects) {
+export function injectEffects (namespace, effects) {
   if (!namespace || typeof namespace !== 'string') {
     if (process.env.NODE_ENV !== 'production') {
       throw Error('error')
@@ -54,7 +54,7 @@ export function injectEffects(namespace, effects) {
   allEffects[namespace] = effects
 }
 
-function createEffectsMiddle(effectsExtraArgument) {
+function createEffectsMiddle (effectsExtraArgument) {
   return store => dispatch => action => {
     if (isPlainObject(action) && typeof action.type === 'string') {
       const { type, ...args } = action
@@ -63,37 +63,64 @@ function createEffectsMiddle(effectsExtraArgument) {
       const actualtype = actionType[1]
 
       if (allEffects[namespace] && allEffects[namespace][actualtype]) {
-        dispatch({ type: `${namespace}/@@setLoading`, payload: actualtype })
-        return new Promise((resolve, reject) => {
-          const state = store.getState()
-          allEffects[namespace][actualtype](
-            {
-              ...effectsExtraArgument,
-              dispatch: ({ type, ...rest }) => {
-                return dispatch({
-                  type: `${namespace}/${type}`,
-                  ...rest
+        // 搜集所有执行中effects
+        const effectName = `${namespace}/${actualtype}`
+        // 浏览器端 __LOADED__ 为true时，直接返回，不进行异步操作
+        if (!isNode && store.getState()[namespace].__LOADED__) {
+          return dispatch({
+            type: `${namespace}/setStore`,
+            payload: { __LOADED__: null }
+          })
+        }
+        if (!isNode) {
+          // 开始执行 异步操作
+          dispatch({ type: `${namespace}/@@setLoading`, payload: actualtype })
+        }
+        // 服务端渲染时，如果已经在异步操作时，直接返回已存在的异步操作
+        if (isNode) {
+          dispatch({
+            type: `${namespace}/setStore`,
+            payload: { __LOADED__: true }
+          })
+          if (inActionEffectsInfos[effectName]) {
+            return inActionEffectsInfos[effectName]
+          }
+        }
+        // 异步操作，添加Promise.resolve().then来保证异步执行
+        const effectFunc = Promise.resolve().then(
+          () =>
+            new Promise((resolve, reject) => {
+              const state = store.getState()
+              allEffects[namespace][actualtype](
+                {
+                  ...effectsExtraArgument,
+                  dispatch: ({ type, ...rest }) => {
+                    return dispatch({
+                      type: `${namespace}/${type}`,
+                      ...rest
+                    })
+                  },
+                  state: state[namespace]
+                },
+                { ...args }
+              )
+                .then(resolve)
+                .catch(reject)
+                .finally(() => {
+                  if (!isNode) {
+                    dispatch({
+                      type: `${namespace}/@@deleteLoading`,
+                      payload: actualtype
+                    })
+                  }
+                  if (inActionEffectsInfos[effectName]) {
+                    delete inActionEffectsInfos[effectName]
+                  }
                 })
-              },
-              state: state[namespace]
-            },
-            { ...args }
-          )
-            .then(res => {
-              resolve(res)
-              dispatch({
-                type: `${namespace}/@@deleteLoading`,
-                payload: actualtype
-              })
             })
-            .catch(err => {
-              reject(err)
-              dispatch({
-                type: `${namespace}/@@deleteLoading`,
-                payload: actualtype
-              })
-            })
-        })
+        )
+        inActionEffectsInfos[effectName] = effectFunc
+        return inActionEffectsInfos[effectName]
       }
       return dispatch(action)
     }
@@ -101,7 +128,7 @@ function createEffectsMiddle(effectsExtraArgument) {
   }
 }
 
-function demacia({
+function demacia ({
   initialState,
   initialModels,
   middlewares = [],
@@ -112,16 +139,7 @@ function demacia({
     for (const key in initialModels) {
       const initialModel = initialModels[key]
       if (isPlainObject(initialModel)) {
-        if (!isNode) {
-          checkModel(initialModel, allModels)
-        }
-        if (initialModel.reducers) {
-          const reducer = createReducers(initialModel)
-          injectReducer(initialModel.namespace, reducer)
-        }
-        if (initialModel.effects) {
-          injectEffects(initialModel.namespace, initialModel.effects)
-        }
+        createModel(initialModel)
       }
     }
   }
@@ -137,7 +155,7 @@ function demacia({
   const reducer =
     Object.keys(allReducer).length > 0
       ? combineReducers(allReducer)
-      : function reducer(state) {
+      : function reducer (state) {
           return state
         }
   // 创建store
@@ -146,6 +164,23 @@ function demacia({
     initialState,
     composeEnhancers(applyMiddleware(effectsMiddle, ...middlewares))
   )
+
+  // 用于手动执行所有的effetcs
+  // 一般用于服务端渲染时
+  store.runEffects = namespace => {
+    const allPromise = []
+    Object.keys(inActionEffectsInfos)
+      .filter(a => !!a)
+      .forEach(actionType => {
+        if (!namespace || actionType.indexOf(`${namespace}/`) === 0) {
+          if (inActionEffectsInfos[actionType]) {
+            allPromise.push(inActionEffectsInfos[actionType])
+          }
+        }
+      })
+    inActionEffectsInfos = {}
+    return allPromise
+  }
 
   return store
 }

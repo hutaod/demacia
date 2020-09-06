@@ -1,4 +1,5 @@
 import isNode from 'detect-node'
+import merge from "lodash/merge"
 import checkModel from './utils/checkModel'
 import createReducers from './createReducers'
 import { injectReducer, injectEffects, allModels } from './store'
@@ -16,14 +17,24 @@ export default function createModel(model) {
   if (!model.state.loading) {
     model.state.loading = []
   }
-
+  // 用于支持 selectors
   if (model.selectors) {
-    selectors = state => model.selectors(state)
+    selectors = state => {
+      return model.selectors(state)
+    }
   }
   if (model.reducers) {
     // 给所有model 的 reducers添加上resetStore
     model.reducers['resetStore'] = () => {
       return model.state
+    }
+    // 给所有model 的 reducers添加上setStore，但可以也model重置
+    const customSetStore = model.reducers.setStore;
+    model.reducers['setStore'] = (state, { payload }) => {
+      if (customSetStore) {
+        return customSetStore(state, payload)
+      }
+      return merge(state, payload)
     }
     // 给所有model 的 reducers添加上@@setLoading, @@这里表示私有，这个只在内部运行
     model.reducers['@@setLoading'] = (state, { payload: effectName }) => {
