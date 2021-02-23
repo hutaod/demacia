@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "composite": true,
+    "moduleResolution": "node",
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es2015", "es2016", "es2017", "dom"],
+    "types": ["jest", "node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "strictPropertyInitialization": false,
+    "allowJs": true, // include js files
+    "checkJs": false, // typecheck js files
+  },
+  "rootDir": "./",
+  "baseUrl": "./",
+  "paths": {
+    "demacia": ["packages/demacia/src"],
+    "demacia-cli": ["packages/demacia-cli/src"],
+    "demacia-scripts": ["packages/demacia-scripts/src"],
+    "demacia-server": ["packages/demacia-server/src"],
+  },
+  "include": ["packages/**/*"],
+  "exclude": [
+    "node_modules"
+  ]
+}
