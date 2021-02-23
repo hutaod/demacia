@@ -1,8 +1,10 @@
-# dependencies
-node_modules/
-
-# example
-/example
-
-# misc
+node_modules
+coverage
 .DS_Store
+*.log
+.vscode
+.idea
+dist
+lib
+*.tsbuildinfo
+/example
